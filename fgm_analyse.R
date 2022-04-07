@@ -31,98 +31,67 @@ trunc <- function(x, ..., prec = 0) base::trunc(x * 10^prec, ...) / 10^prec;
 # sourcing my own functions
 source("~/Documents/GitHub/ger_R_functions/plot_functions.R")
 
+# number of subjects
+subject_IDs <- unique(fgmdata$sub)
 
-# run a multiple linear regression models on response error
+# what is the mean response error per subject?
+mean_RE_perMotionSub <- array(NA, dim= c(length(subject_IDs), 3))
 
-fullModel <- lm(fgmdata$responseError ~ fgmdata$cuedAR + fgmdata$uncuedAR
-                * fgmdata$sameDirection1S0D * fgmdata$global_org * fgmdata$coherence)
-summary(fullModel)
-anova(fullModel)
+for (s in 1:length(subject_IDs)){
+
+  tmpdata <- fgmdata[fgmdata$sub == subject_IDs[s],]
+  mean_RE_perMotionSub[s,1] <- subject_IDs[s]
+  mean_RE_perMotionSub[s,2] <- mean(tmpdata$responseError[tmpdata$sameDirection1S0D == 0])
+  mean_RE_perMotionSub[s,3] <- mean(tmpdata$responseError[tmpdata$sameDirection1S0D == 1])
+}
+mean_RE_perMotionSub <- data.frame(mean_RE_perMotionSub)
+colnames(mean_RE_perMotionSub) <- c("id", "RE_D", "RE_S")
+
+# t-test to see if means of response error for similar and dissimilar is different
+
+RE_perSimilarity <- t.test(mean_RE_perMotionSub$RE_D, mean_RE_perMotionSub$RE_S, paired = T)
+RE_perSimilarity # mean difference is neglible, so no significant difference.
+
+plot(mean_RE_perMotionSub$RE_S, mean_RE_perMotionSub$RE_D)
+lines(c(-1,1),c(-1,1))#draw an identifier line, not really different per condition
+# this is expected because mean of cued AR and mean of uncued AR is equal
+mean(fgmdata$cuedAR)
+mean(fgmdata$uncuedAR)
+
+# lets define our target matrix
+fgmdata.target <- array(NA, dim = c(length(subject_IDs),7))
+colnames(fgmdata.target) <- c("id", "responseError", "uncuedAR", "cuedAR",
+                              "sameDirection1S0D", "global_org", "coherence")
+fgmdata.target[,1] <- subject_IDs
+head(fgmdata.target)
 
 # aggregate by sub then run the same analysis again
-
 fgmdata.agg <- aggregate(responseError ~ cuedAR + uncuedAR + 
-                           sameDirection1S0D + global_org + sub, mean, data = fgmdata)
-
-subject_IDs <- unique(fgmdata.agg$sub)
-
-singleSub <- fgmdata.agg$sub[fgmdata.agg$sub == subject_IDs[1]]
-
-# run the regression model again
-fullModel.sub <- lm(fgmdata.agg $responseError ~ fgmdata.agg $cuedAR + fgmdata.agg $uncuedAR
-                * fgmdata.agg $sameDirection1S0D * fgmdata.agg $global_org)
-summary(fullModel.sub)
-anova(fullModel.sub)
+                           sameDirection1S0D + global_org + sub + sameCatS1D0, mean, data = fgmdata)
 
 
+# QUESTION: should I run the analysis by the aggregated data? How do I account for the
+# variances between subjects
+# run a multiple (and mixed) linear regression models on response error
 
-#########
-  
-data <- fgmdata # for now
+library(lme4)
+RE_mixed = lmer(responseError ~ cuedAR * uncuedAR + (1 | sub), data = fgmdata)
+summary(RE_mixed)
 
-#box plot
-p0<- ggplot(data, aes(uncuedCat, respError, group = as.factor(uncuedCat))) 
-p0 + geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.02) + geom_boxplot()
+# normal multiple regression model
 
-# Change box plot colors by groups
-ggplot(data, aes(x=uncuedCat, y=respError, fill = as.factor(sameMotion))) +
-  geom_boxplot() + geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.02)
-#geom_boxplot(position=position_dodge(1))# Change the position
+m1 <- lm(responseError ~ cuedAR, data = fgmdata)
+summary(m1)
 
-# grouped boxplot
-data$uncuedCat = as.character(data$uncuedCat)
-data$sameMotion = as.character(data$sameMotion)
-ggplot(data, aes(x=uncuedCat, y=respError, fill=sameMotion)) + 
-  geom_boxplot()
+m2 <- lm(responseError ~ cuedAR + uncuedAR * sameDirection1S0D, data = fgmdata)
+summary(m2)
+anova(m2)
 
+m3 <- lm(responseError ~ cuedAR + uncuedAR * sameDirection1S0D *global_org, data = fgmdata)
+summary(m3)
+anova(m3)
 
-
-
-
-lmCat <- lm(respError ~ uncuedCatLabel * sameMotion, data)
-summary(lmCat)
-anova(lmCat)
-
-p1<- plotREF(data, data$uncuedAR, data$respError, as.factor(data$sameMotion)) + facet_wrap(~data$uncuedCat)
-p1 + facet_grid(data$globalOrg) + facet_wrap(data$cuedMotDir)
-
-
-# response AR - raw DV analysis # 
-lmCat <- lm(respError ~ uncuedAR * sameMotion, data)
-summary(lmCat)
-anova(lmCat)
-
-
-# aggregate by 
-data_agg <- aggregate(respError ~ uncuedAR + sameMotion + globalOrg, data, mean)
-p2<- ggplot(data_agg, aes(uncuedAR, respError)) + geom_point(aes(colour=sameMotion), shape=15, size=1.5) 
-p2
-
-p2<- plotREF(data, data$uncuedAR, data$respError, as.factor(data$sameMotion)) + facet_grid(~data$uncuedCatLabel)
-p2
-
-p2 +   stat_summary(fun.data=mean_cl_normal) + 
-  geom_smooth(method='lm', formula= y~x) +facet_wrap(data$globalOrg)
-
-
-# substract each response error of motion same 1) and 2) for each uncuedAR. That
-# way I can get the influence of same on the response error for each uncuedAR
-
-for (i in 1:nrow(data_agg)){
-  
-}
-
-motionSame <- subset(data_agg, data_agg$sameMotion==1)
-motionDiff <- subset(data_agg, data_agg$sameMotion==0)
-## do it for bgm ##
-motionAll <- cbind(motionSame, motionDiff)
-
-test <- motionSame- motionDiff
-motionSame$test2 <- motionSame$respError - motionDiff$respError
-
-p2<- ggplot(data_agg, aes(uncuedAR, respError)) + geom_point(aes(colour=sameMotion), shape=15, size=1.5) + facet_wrap(~sameMotion) + facet_grid(~globalOrg)
-p2 + geom_bar(stat="identity")
-p2 + geom_col(aes(fill = respError < 0), position = "identity") + scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c("gray", "darkred"))
-
-
+m4 <- lm(responseError ~ cuedAR + uncuedAR * sameDirection1S0D *global_org *sameCatS1D0, data = fgmdata)
+summary(m4)
+anova(m4)
 

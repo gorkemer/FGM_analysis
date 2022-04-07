@@ -48,13 +48,6 @@ fgmdata <- fgmdata[,c("sub","distBtwShapes","trial_number", "cuedAR", "uncuedAR"
 # transform characters data into numeric type
 fgmdata <- mutate_all(fgmdata, function(x) as.numeric(as.character(x)))
 
-
-#### think about deleting ####
-# remove na in r - remove rows - na.omit function / option
-#fgmdata <- na.omit(fgmdata)
-
-
-
 # What specific direction is cued shape moving?
 # cued motion direction [cued_motDir]: 0, 90, 180, 270                
 # populate cued_motion direction column -- use "cued_ellipse" and e1/e2 motion directions
