@@ -95,3 +95,9 @@ m4 <- lm(responseError ~ cuedAR + uncuedAR * sameDirection1S0D *global_org *same
 summary(m4)
 anova(m4)
 
+# DV: Response AR
+
+m1 <- lm(responseAR ~ cuedAR + uncuedAR * sameDirection1S0D, data = fgmdata)
+summary(m1)
+
+
