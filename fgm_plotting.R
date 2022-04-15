@@ -50,7 +50,7 @@ yaxisLim <- 0.1
 densityAlpha <- 0.1
 densityColor <- "blue"
 jitterAlpha <- 0.1
-identicalMotion_label <- "Identical"
+identicalMotion_label <- "Same"
 differentMotion_label <- "Different"
 identicalMotion_color <- "red"
 differentMotion_color <- "black"
