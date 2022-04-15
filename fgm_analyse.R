@@ -12,7 +12,7 @@ rm(list=ls())
 
 # load libraries in bulk
 x<-c("ggpubr", "ggplot2", "multcomp", "pastecs", "tidyr","dplyr", "ggiraph", "ggiraphExtra", "plyr", 
-     "covreg", "plot3D", "Hmisc", "corrplot", "psych", "tidyverse", "hrbrthemes", "viridis", "gapminder",
+     "covreg", "Hmisc", "corrplot", "psych", "tidyverse", "hrbrthemes", "viridis", "gapminder",
      "ggExtra", "scatterplot3d", "reshape2", "rlang", "plyr", "data.table", "lme4", "magrittr", "fitdistrplus",
      "gridExtra", "statmod", "dotwhisker")
 
@@ -75,8 +75,8 @@ fgmdata.agg <- aggregate(responseError ~ cuedAR + uncuedAR +
 # run a multiple (and mixed) linear regression models on response error
 
 library(lme4)
-RE_mixed = lmer(responseError ~ cuedAR * uncuedAR + (1 | sub), data = fgmdata)
-summary(RE_mixed)
+RE_mixed = lmer(responseError ~ cuedAR * uncuedAR * sameDirection1S0D + (1 | sub), data = fgmdata)
+summary(RE_mixed) # variance is close to zero, data is too large to use mixed effects regression modeling
 
 # normal multiple regression model
 

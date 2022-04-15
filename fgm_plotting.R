@@ -9,7 +9,7 @@ rm(list=ls())
 
 # load libraries in bulk
 x<-c("ggpubr", "ggplot2", "multcomp", "pastecs", "tidyr","dplyr", "ggiraph", "ggiraphExtra", "plyr", 
-     "covreg", "plot3D", "Hmisc", "corrplot", "psych", "tidyverse", "hrbrthemes", "viridis", "gapminder",
+     "covreg", "Hmisc", "corrplot", "psych", "tidyverse", "hrbrthemes", "viridis", "gapminder",
      "ggExtra", "scatterplot3d", "reshape2", "rlang", "plyr", "data.table", "lme4", "magrittr", "fitdistrplus",
      "gridExtra", "statmod", "dotwhisker")
 
@@ -46,7 +46,7 @@ fgmdata$uncued_vector <- factor(fgmdata$uncued_vector, labels = c(sprintf('\u219
 fgmdata$global_org <- factor(fgmdata$global_org, labels = c("between", "within" ))
 
 #### plotting variables ####
-yaxisLim <- 0.1
+yaxisLim <- 0.05
 densityAlpha <- 0.1
 densityColor <- "blue"
 jitterAlpha <- 0.1
@@ -54,7 +54,7 @@ identicalMotion_label <- "Same"
 differentMotion_label <- "Different"
 identicalMotion_color <- "red"
 differentMotion_color <- "black"
-lmAlpha <- 0.3
+lmAlpha <- 0.1
 
 # remove scientific notation in the entire R session
 options(scipen = 100)
@@ -64,31 +64,43 @@ fgmdata.a <- aggregate(responseError ~ uncuedAR  + sameDirection1S0D + sub, fgmd
 
 #### fgm plot 01 ####
 
-fgmplot01 <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
+fgmplot01 <- ggplot(fgmdata,cex=3, aes(x = uncuedAR, y = responseError, fill=as.factor(sameDirection1S0D) , colour=as.factor(sameDirection1S0D))) + 
   #geom_point(shape=1, size=0.5, alpha=jitterAlpha, show.legend = FALSE) +
   #geom_jitter(shape=1, size=0.5, alpha=jitterAlpha, show.legend = FALSE) +
   #geom_density_2d(color=densityColor, alpha=densityAlpha) + 
-  coord_cartesian(ylim=c(-yaxisLim, yaxisLim)) +
+  coord_cartesian(ylim=c(-yaxisLim/4, yaxisLim/1.5)) +
   geom_smooth(method = "lm", span = 1, alpha= lmAlpha,
-              aes(color = as.factor(sameDirection1S0D))) +
+              aes(fill = as.factor(sameDirection1S0D))) +
   geom_segment(aes(x=min(unique(uncuedAR)),xend=max(unique(uncuedAR)),y=0,yend=0), linetype="longdash",  color="gray50")+ 
   scale_color_manual(name="Motion Direction",
                      labels=c(differentMotion_label,identicalMotion_label)
                      ,values=c(differentMotion_color,
                                identicalMotion_color))+
-  labs(x="(<-flatter)   Uncued AR   (taller->)", y = "(<-flatter) Response Error (taller->)") +
+  scale_fill_manual(values=c(differentMotion_color,
+                               identicalMotion_color))+
+  labs(x="(< flatter) Uncued AR (taller >)", y = "(< flatter) Response Error ( taller >)", size = 10.5) +
   labs(title="", subtitle=" ")+
   scale_x_continuous(breaks = seq(-0.5, 0.5, by = 0.5))+
-  theme_classic()
+  theme_classic() +
+  theme(
+    #panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+    axis.text.x = element_text(size=12,color="black"),
+    axis.text.y = element_text(size=12,color="black"),
+    legend.title = element_text(size=14),
+    legend.text = element_text(size=12),
+    legend.position = "none",#c(0.8, 0.14),
+    axis.title.y = element_text(size = rel(1.5), angle = 90, hjust = -0.5),
+    axis.title.x = element_text(size = rel(1.5), angle = 0,  vjust = -0.5)
+    )
 fgmplot01
-ggsave(filename = "fgmplot01.pdf", width = 14, height = 8, units = "in", device='pdf', dpi=700) 
+ggsave(filename = "fgmplot01.pdf", width = 5, height = 5, units = "in", device='pdf', dpi=700) 
 
 #### fgm plot 02 ####
 
 fgmdata.a <- aggregate(responseError ~ uncuedAR  + sameDirection1S0D + sub + global_org+
                          cued_vector + uncued_vector, fgmdata, mean)
 jitterAlpha <- 0.05
-fgmplot02 <- ggplot(fgmdata.a, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
+fgmplot02 <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
   #geom_point(shape=11, size=0.5, alpha=0.5, show.legend = FALSE) +
   geom_jitter(shape=1, size=0.5, alpha=jitterAlpha, show.legend = FALSE) +
   geom_density_2d(color="blue", alpha=densityAlpha) + 
@@ -185,5 +197,6 @@ plot03 <- ggplot(aggToget, aes(x = uncuedAR, y =responseAR )) +
   theme_classic() + 
   theme(panel.spacing.x = unit(1.5, "lines"))
 plot03
+
 ggsave(filename = "fgmplot03.pdf", width = 14, height = 8, units = "in", device='pdf', dpi=700) 
 
