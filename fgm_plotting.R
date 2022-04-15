@@ -2,6 +2,7 @@
 # Plotting script for the foreground motion experiment. 
 # Same/similar to bgm_plotting.R script. Only doing it for the fgm plots
 # plots to be used for the manuscript
+# good representative participant: 939045
 
 # clear the workspace
 rm(list=ls()) 
@@ -17,90 +18,108 @@ lapply(x, require, character.only = TRUE)
 
 source("~/Documents/GitHub/ger_R_functions/plot_functions.R")
 
-# remove scientific notation in the entire R session
-options(scipen = 100)
+savePlot <- function(myPlot) {
+  pdf("myPlot.pdf")
+  print(myPlot)
+  dev.off()
+}
 
-# locate the data and import it
+#### locate the data and import it ####
 # loading data
 setwd('~/Desktop/21Projects/Single_FG_Motion')
 fgmdata = read.csv('fgmdata.csv', header = TRUE)
 
-#plotREF_GO(bgmdata, bgmdata$response_error, bgmdata$uncuedAR, bgmdata$sameDirection1S0D)
+#### identify/rename variables for plotting ####
 
-interactionPlot <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
-  #geom_point(shape=11, size=0.5, alpha=0.01, show.legend = FALSE) +
-  geom_jitter(shape=11, size=0.5, alpha=0.01, show.legend = FALSE) +
-  #geom_density_2d(color="gray", alpha=0.3) + 
-  coord_cartesian(ylim=c(-0.1, 0.1)) +
-  theme(legend.key.size = unit(0.2, "cm")) + 
-  geom_smooth(method = "lm", span = 0.1, alpha= 0.2,
+# plot by cued vector vs uncued vector
+fgmdata$cued_vector <- ifelse(fgmdata$cued_ellipse == 1, fgmdata$e1_motion_dir, fgmdata$e2_motion_dir)
+fgmdata$uncued_vector <- ifelse(fgmdata$cued_ellipse == 1, fgmdata$e2_motion_dir, fgmdata$e1_motion_dir)
+
+# reorder levels
+fgmdata$cued_vector <- factor(fgmdata$cued_vector, levels = c(0, 180, 90, 270))
+fgmdata$uncued_vector <- factor(fgmdata$uncued_vector, levels = c(0, 180, 90, 270))
+
+# rename levels
+fgmdata$cued_vector <- factor(fgmdata$cued_vector, labels = c( sprintf('\u2192'), sprintf('\u2190'), sprintf('\u2191'), sprintf('\u2193')))
+fgmdata$uncued_vector <- factor(fgmdata$uncued_vector, labels = c(sprintf('\u2192'), sprintf('\u2190'), sprintf('\u2191'),sprintf('\u2193')))
+
+fgmdata$global_org <- factor(fgmdata$global_org, labels = c("between", "within" ))
+
+#### plotting variables ####
+yaxisLim <- 0.1
+densityAlpha <- 0.1
+densityColor <- "blue"
+jitterAlpha <- 0.1
+identicalMotion_label <- "Identical"
+differentMotion_label <- "Different"
+identicalMotion_color <- "red"
+differentMotion_color <- "black"
+lmAlpha <- 0.3
+
+# remove scientific notation in the entire R session
+options(scipen = 100)
+
+# for plotting on the aggregated data 
+fgmdata.a <- aggregate(responseError ~ uncuedAR  + sameDirection1S0D + sub, fgmdata, mean)
+
+#### fgm plot 01 ####
+
+fgmplot01 <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
+  #geom_point(shape=1, size=0.5, alpha=jitterAlpha, show.legend = FALSE) +
+  #geom_jitter(shape=1, size=0.5, alpha=jitterAlpha, show.legend = FALSE) +
+  #geom_density_2d(color=densityColor, alpha=densityAlpha) + 
+  coord_cartesian(ylim=c(-yaxisLim, yaxisLim)) +
+  geom_smooth(method = "lm", span = 1, alpha= lmAlpha,
               aes(color = as.factor(sameDirection1S0D))) +
   geom_segment(aes(x=min(unique(uncuedAR)),xend=max(unique(uncuedAR)),y=0,yend=0), linetype="longdash",  color="gray50")+ 
-  # scale_color_manual(name="Shared Box"
-  #                    #labels=c("cued (1/2)","Neither inside", "Shared")
-  #                    ,values=c("black",
-  #                              "red","orange", "blue", "slateblue3" ))+
   scale_color_manual(name="Motion Direction",
-                     labels=c("Unshared","Shared")
-                     ,values=c("red",
-                               "black"))+
-  labs(x="(<-flatter)   Uncued AR   (taller->)", y = "(<-flatter) AR Response Error (taller->)") +
+                     labels=c(differentMotion_label,identicalMotion_label)
+                     ,values=c(differentMotion_color,
+                               identicalMotion_color))+
+  labs(x="(<-flatter)   Uncued AR   (taller->)", y = "(<-flatter) Response Error (taller->)") +
   labs(title="", subtitle=" ")+
   scale_x_continuous(breaks = seq(-0.5, 0.5, by = 0.5))+
-  theme_classic() #+
-#ggtitle("Response Error Fluctuations")
-#facet_grid(~data$cuedAR)
-interactionPlot
+  theme_classic()
+fgmplot01
+ggsave(filename = "fgmplot01.pdf", width = 14, height = 8, units = "in", device='pdf', dpi=700) 
 
-basicPlot <- ggplot(fgmdata, aes(x = cuedAR, y = responseError)) + 
-  geom_jitter(shape=11, size=0.5, alpha=0.02, show.legend = FALSE) +
-  #geom_density_2d(color="gray", alpha=0.3) + 
-  #coord_cartesian(ylim=c(-0.05, 0.05)) +
-  theme(legend.key.size = unit(0.2, "cm")) + 
-  geom_smooth(method = "lm", span = 0.1, alpha= 0.2) +
-  geom_segment(aes(x=min(unique(cuedAR)),xend=max(unique(cuedAR)),y=0,yend=0), linetype="longdash",  color="gray50")+ 
-  # scale_color_manual(name="Shared Box"
-  #                    #labels=c("cued (1/2)","Neither inside", "Shared")
-  #                    ,values=c("black",
-  #                              "red","orange", "blue", "slateblue3" ))+
-  # scale_color_manual(name="Motion Direction",
-  #                    labels=c("Unshared","Shared")
-  #                    ,values=c("red",
-  #                              "black"))+
-  labs(x="(<-flatter)   Cued AR   (taller->)", y = "(<-flatter) AR Response Error (taller->)") +
-  labs(title="", subtitle=" ")+
-  scale_x_continuous(breaks = seq(-0.5, 0.5, by = 0.5))+
-  theme_classic() #+
-#ggtitle("Response Error Fluctuations")
-#facet_grid(~data$cuedAR)
-basicPlot
+#### fgm plot 02 ####
 
-interactionPlot_id <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
-  #geom_point(shape=11, size=0.5, alpha=0.01, show.legend = FALSE) +
-  geom_jitter(shape=11, size=0.5, alpha=0.08, show.legend = FALSE) +
-  geom_density_2d(color="gray", alpha=0.3) + 
-  coord_cartesian(ylim=c(-0.15, 0.15)) +
-  theme(legend.key.size = unit(0.2, "cm")) + 
-  geom_smooth(method = "lm", span = 0.1, alpha= 0.2,
+fgmdata.a <- aggregate(responseError ~ uncuedAR  + sameDirection1S0D + sub + global_org+
+                         cued_vector + uncued_vector, fgmdata, mean)
+jitterAlpha <- 0.05
+fgmplot02 <- ggplot(fgmdata.a, aes(x = uncuedAR, y = responseError, colour=as.factor(sameDirection1S0D))) + 
+  #geom_point(shape=11, size=0.5, alpha=0.5, show.legend = FALSE) +
+  geom_jitter(shape=1, size=0.5, alpha=jitterAlpha, show.legend = FALSE) +
+  geom_density_2d(color="blue", alpha=densityAlpha) + 
+  coord_cartesian(ylim=c(-0.2, 0.2)) +
+  #theme(legend.key.size = unit(0.2, "cm")) + 
+  geom_smooth(method = "lm", span = 1, alpha= lmAlpha,
               aes(color = as.factor(sameDirection1S0D))) +
   geom_segment(aes(x=min(unique(uncuedAR)),xend=max(unique(uncuedAR)),y=0,yend=0), linetype="longdash",  color="gray50")+ 
-  # scale_color_manual(name="Shared Box"
-  #                    #labels=c("cued (1/2)","Neither inside", "Shared")
-  #                    ,values=c("black",
-  #                              "red","orange", "blue", "slateblue3" ))+
   scale_color_manual(name="Motion Direction",
-                     labels=c("Unshared","Shared")
-                     ,values=c("red",
-                               "black"))+
-  labs(x="(<-flatter)   Uncued AR   (taller->)", y = "(<-flatter) AR Response Error (taller->)") +
+                     labels=c(differentMotion_label,identicalMotion_label)
+                     ,values=c(differentMotion_color,
+                               identicalMotion_color))+
+  labs(x="(<-flatter)   Uncued AR   (taller->)", y = "(<-flatter) Response Error (taller->)") +
   labs(title="", subtitle=" ")+
   scale_x_continuous(breaks = seq(-0.5, 0.5, by = 0.5))+
-  theme_classic() #+
-#ggtitle("Response Error Fluctuations")
-#facet_grid(~data$cuedAR)
-interactionPlot_id + facet_wrap(~sub, nrow = 8)
+  theme_classic()+ 
+  facet_wrap(~global_org*cued_vector*uncued_vector, nrow = 2)+
+  theme_classic() +
+  theme(panel.spacing.x = unit(1, "lines"))
+
+fgmplot02
+jitterAlpha <- 0.1
+ggsave(filename = "fgmplot02.pdf", width = 14, height = 8, units = "in", device='pdf', dpi=700) 
 
 
+#### save plots ####
+
+#ggsave(filename = "fgm_plot2.pdf", width = 14, height = 8, units = "in", device='pdf', dpi=700) 
+#savePlot(interactionPlotVectors)
+
+#### fgm plot 03 ####
 agg <- aggregate(responseAR ~ cuedAR + uncuedAR + sameDirection1S0D, fgmdata, mean)
 
 agg1 <- subset(agg, agg$cuedAR==-0.46331866)
@@ -150,17 +169,21 @@ agg21$barkod <- 21
 
 aggToget <- rbind(agg1,agg2, agg3, agg4, agg5, agg6, agg7, agg8, agg9, agg10, agg11, agg12, agg13, agg14, agg15, agg16, agg17, agg18, agg19, agg20, agg21)
 
-barkodPlot <- ggplot(aggToget, aes(x = uncuedAR, y =responseAR )) + 
-  geom_point(shape=19, size=0.2, alpha=0.5, show.legend = FALSE, aes(color = as.factor(cuedAR))) +
-  coord_cartesian(ylim=c(-0.55, 0.55)) +
-  # geom_jitter(shape=19, size=0.2, alpha=0.01, show.legend = FALSE) +
-  geom_density_2d(color="gray", alpha=0.3) + 
+aggToget$sameDirection1S0D <- factor(aggToget$sameDirection1S0D, labels = c("Ungrouped", "Grouped"))
+
+plot03 <- ggplot(aggToget, aes(x = uncuedAR, y =responseAR )) + 
+  geom_point(shape=1, size=0.2, alpha=0.5, show.legend = FALSE, aes(color = as.factor(cuedAR))) +
+  coord_cartesian(ylim=c(-0.4, 0.4)) +
+  #geom_jitter(shape=1, size=0.5, alpha=jitterAlpha + 0.03, show.legend = FALSE) +
+  #geom_line(data = aggToget, aes(group = barkod, colour = as.factor(barkod))) +
+  geom_density_2d(color=densityColor, alpha=densityAlpha) + 
   geom_smooth(method = "lm",
-              aes(color = factor(cuedAR)), alpha = 0.1) +
-  #xlim(-.5, .5) +
-  #ylim(-.7,.7) +
-  # labs(x="arDiff", y = "Reported aspect ratio") +
-  ggtitle("Grid by Motion Condition", subtitle = "positive slope for same, negative-ish for diff") 
-barkodPlot + facet_grid(~sameDirection1S0D) + scale_colour_grey() + theme_bw() 
-#+ geom_line() 
-# + scale_colour_grey() + theme_bw() 
+              aes(color = factor(cuedAR)), alpha = lmAlpha-0.3)+
+  labs(x="(<-flatter)   Uncued AR   (taller->)", y = "(<-flatter) Response (taller->)")+ 
+  facet_grid(~sameDirection1S0D) + 
+  scale_colour_grey() + 
+  theme_classic() + 
+  theme(panel.spacing.x = unit(1.5, "lines"))
+plot03
+ggsave(filename = "fgmplot03.pdf", width = 14, height = 8, units = "in", device='pdf', dpi=700) 
+
