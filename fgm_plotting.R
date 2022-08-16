@@ -72,6 +72,11 @@ fgmplot01 <- ggplot(fgmdata,cex=3, aes(x = uncuedAR, y = responseAR, fill=as.fac
   coord_cartesian(ylim=c(-0.02, 0.04)) +
   geom_smooth(method = "lm", span = 1, alpha= lmAlpha,
               aes(fill = as.factor(sameDirection1S0D))) +
+  # geom_smooth(method="nls",
+  #             formula= y ~ x * a * w *  sqrt(2)/exp(-(0.5)) * exp(-(w*x^2)), #y ~ a + b*x, # this is an nls argument
+  #             start = list(a = 0.39, w = 0.63),
+  #             se=FALSE, algorithm="port",
+  #             color = "firebrick2") + #aes(color = as.factor(sameDirection1S0D))
   geom_segment(aes(x=min(unique(uncuedAR)),xend=max(unique(uncuedAR)),y=0,yend=0), linetype="longdash",  color="gray50")+ 
   scale_color_manual(name="Motion Direction",
                      labels=c(differentMotion_label,identicalMotion_label)
@@ -302,23 +307,24 @@ testPlot
 # sanity check plot
 #fgmdata$responseAR_norm <- (fgmdata$responseAR-min(fgmdata$responseAR))/(max(fgmdata$responseAR)-min(fgmdata$responseAR))
 fgmdata.submean <- aggregate(responseAR ~ cuedAR + sub, fgmdata, mean)
-fgmplot04.png <- ggplot(fgmdata.submean, aes(x = cuedAR, y = responseAR)) +
+fgmplot04 <- ggplot(fgmdata.submean, aes(x = cuedAR, y = responseAR)) +
   geom_jitter(alpha = 1/4, aes(color = as.factor(sub))) +
   geom_density_2d(color=densityColor, alpha=densityAlpha) +
   # geom_abline(linetype = 11,  color="gray50") +
-  geom_segment(aes(x=min(unique(cuedAR)),xend=max(unique(cuedAR)),y=0,yend=0), linetype = 11,  color="gray60")+ 
+  geom_segment(aes(x=min(unique(cuedAR)),xend=max(unique(cuedAR)),y=0,yend=0), linetype = 11,  color="gray30")+ 
   geom_segment(aes(x=min(unique(cuedAR)),xend=max(unique(cuedAR)),
                    y=min(unique(cuedAR)),yend=max(unique(cuedAR))), 
-                   linetype = 11,  color="gray60")+ 
-  # geom_smooth(method = "lm", color = "blue") +
-  geom_smooth(method="nls",
-              formula= y ~ x * a * w *  sqrt(2)/exp(-(0.5)) * exp(-(w*x^2)), #y ~ a + b*x, # this is an nls argument
-              start = list(a = 0.39, w = 0.63),
-              se=FALSE, algorithm="port",
-              color = "firebrick2") + #aes(color = as.factor(sameDirection1S0D))
+                   linetype = 11,  color="gray30")+ 
+  geom_smooth(method = "lm", color = "firebrick2") +
+  # geom_smooth(method="nls",
+  #             formula= y ~ x * a * w *  sqrt(2)/exp(-(0.5)) * exp(-(w*x^2)), #y ~ a + b*x, # this is an nls argument
+  #             start = list(a = 0.39, w = 0.63),
+  #             se=FALSE, algorithm="port",
+  #             color = "firebrick2") + #aes(color = as.factor(sameDirection1S0D))
   labs(x="(< flatter) Cued AR (taller >)", y = "(< flatter) Mean AR Response ( taller >)", size = 10.5) +
   labs(title="", subtitle=" ")+
   scale_x_continuous(breaks = seq(-0.5, 0.5, by = 0.5))+
+  coord_cartesian(ylim=c(-0.5, 0.5)) +
   theme_classic() +
   theme(
     #panel.border = element_rect(colour = "black", fill=NA, size=0.5),
@@ -332,7 +338,7 @@ fgmplot04.png <- ggplot(fgmdata.submean, aes(x = cuedAR, y = responseAR)) +
   )
 
 
-fgmplot04.png #+ facet_wrap(~sub) + #c(0.8, 0.14),
+fgmplot04 #+ facet_wrap(~sub) + #c(0.8, 0.14),
 ggsave(filename = "fgmplot04.png",  width = 5, height = 5, units = "in", device='png', dpi=700) 
 
 #### fgmplot 05 - response error plot - ####

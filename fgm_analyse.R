@@ -71,7 +71,7 @@ fgmdata.agg <- aggregate(responseError ~ cuedAR + uncuedAR +
 
 
 # QUESTION: should I run the analysis by the aggregated data? How do I account for the
-# variances between subjects
+# variances within subjects
 # run a multiple (and mixed) linear regression models on response error
 
 library(lme4)
@@ -85,7 +85,10 @@ summary(m1)
 
 m2 <- lm(responseError ~ cuedAR + uncuedAR * sameDirection1S0D, data = fgmdata)
 summary(m2)
-anova(m2)
+#anova(m2)
+
+names(m2$coefficients) <- c('Intercept','Cued AR','Uncued AR', "Same Direction", "Uncued AR x Same Direction")
+summary(m2)
 
 m3 <- lm(responseError ~ cuedAR + uncuedAR * sameDirection1S0D *global_org, data = fgmdata)
 summary(m3)
@@ -99,5 +102,27 @@ anova(m4)
 
 m1 <- lm(responseAR ~ cuedAR + uncuedAR * sameDirection1S0D, data = fgmdata)
 summary(m1)
+names(m1$coefficients) <- c('Intercept','Cued AR','Uncued AR', "Same Direction", "Uncued AR x Same Direction")
+summary(m1)
 
+
+# adding whisker plots
+
+library(dotwhisker)
+#plot lm results
+dwplot(list(m1, m2, m3), vline = geom_vline(
+  xintercept = 0,
+  colour = "grey40",
+  linetype = 2,
+),
+vars_order = c("uncuedAR:sameDirection1S0D:global_org", "sameDirection1S0D:global_org", "uncuedAR:global_org", "global_org","uncuedAR:sameDirection1S0D", "sameDirection1S0D", "uncuedAR",  "cuedAR" ),
+model_order = c("Model 3", "Model 2", "Model 1")
+) + theme_minimal() + 
+  theme(
+    axis.text.x = element_text(angle = 45, face="bold")
+  ) + xlab("Regression Coefficients\n") + 
+  coord_flip() + 
+  scale_color_manual(name="",values=c("gray10", "blue", "darkviolet")) + theme_bw()  #darkviolet
+
+ggsave(filename = "dotwhisker_bgm.png",  width = 5, height = 5, units = "in", device='png', dpi=700) 
 
