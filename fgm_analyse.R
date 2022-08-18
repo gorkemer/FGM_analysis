@@ -16,31 +16,22 @@ rm(list=ls())
 x<-c("ggpubr", "ggplot2", "multcomp", "pastecs", "tidyr","dplyr", "ggiraph", "ggiraphExtra", "plyr", 
      "covreg", "Hmisc", "corrplot", "psych", "tidyverse", "hrbrthemes", "viridis", "gapminder",
      "ggExtra", "scatterplot3d", "reshape2", "rlang", "plyr", "data.table", "lme4", "magrittr", "fitdistrplus",
-     "gridExtra", "statmod", "dotwhisker", "lmerTest", "nlme")
+     "gridExtra", "statmod", "dotwhisker", "lmerTest", "nlme", "GGally")
 #if(!require(devtools)) install.packages("devtools")
 #devtools::install_github("kassambara/ggpubr")
 require(x)
 lapply(x, require, character.only = TRUE)
-
 #remove scientific notation in the entire R session
 options(scipen = 100)
-
 # loading data
 setwd('~/Desktop/21Projects/Single_FG_Motion')
 fgmdata = read.csv('fgmdata.csv', header = TRUE)
-
 # some relevant functions
 trunc <- function(x, ..., prec = 0) base::trunc(x * 10^prec, ...) / 10^prec;
 # sourcing my own functions
 source("~/Documents/GitHub/ger_R_functions/plot_functions.R")
-
-
 # exp details
 number_of_sub <- unique(fgmdata$sub)
-# fgmdata$sameDirection1S0D <- as.factor(fgmdata$sameDirection1S0D)
-# fgmdata$global_org <- as.factor(fgmdata$global_org)
-# fgmdata$cuedMotDir <- as.factor(fgmdata$cuedMotDir)
-# fgmdata$sub <- as.factor(fgmdata$sub)
 # new meta variables
 fgmdata$cuedAR <- round(fgmdata$cuedAR, digits = 2)
 table(fgmdata$cuedAR)
@@ -93,10 +84,11 @@ plot(fgmdata$cuedAR[fgmdata$sub == testToBeCleaned], fgmdata$responseAR[fgmdata$
 incompletedPeople <- fgmdata.cleaning$id[fgmdata.cleaning$trialN<241]
 incompletedPeople
 #### CLEANED DATA ####
-fgmdata <- fgmdata[!( (fgmdata$sub %in% below50P)),]
+#fgmdata <- fgmdata[!( (fgmdata$sub %in% below50P)),]
 fgmdata <- fgmdata[!( (fgmdata$sub %in% incompletedPeople)),]
 # check
 incompletedPeople[1:length(incompletedPeople)] %in% unique(fgmdata$sub) 
+below50P[1:length(below50P)] %in% unique(fgmdata$sub) # many of the below50 people are included in the analysis
 # clear relationship between CUED vs RESPONSE
 cols = rgb(red = 1, green = 0, blue = 0)
 plot(fgmdata$responseAR, fgmdata$cuedAR, main= "Response AR as a function of cued AR (paired with same)", 
@@ -294,10 +286,10 @@ lmm <- lmer(responseError ~ 1  + sameDirection1S0D*uncuedCat*global_org + (sameD
 summary(lmm)
 anova(lmm)# Okay, I guess there is no interaction with global organization :/ 
 # checking anova results, on fgmdata
-lmm <- lmer(responseError ~ 1  + sameDirection1S0D*global_org*uncuedAR + (global_org*sameDirection1S0D|sub), fgmdata)
-summary(lmm) # again I confirm this: 1) sig interaction of uncuedAR and grouping, 2) main effect of global org
-lmm <- lmer(responseError ~ 1  + sameDirection1S0D*global_org*uncuedAR + (global_org*sameDirection1S0D*uncuedAR|sub), fgmdata)
-summary(lmm) # added uncuedAR to the random effects
+#lmm <- lmer(responseError ~ 1  + sameDirection1S0D*global_org*uncuedAR + (global_org*sameDirection1S0D|sub), fgmdata)
+#summary(lmm) # again I confirm this: 1) sig interaction of uncuedAR and grouping, 2) main effect of global org
+#lmm <- lmer(responseError ~ 1  + sameDirection1S0D*global_org*uncuedAR + (global_org*sameDirection1S0D*uncuedAR|sub), fgmdata)
+#summary(lmm) # added uncuedAR to the random effects
 # continuous variable
 m <- lmer(responseError ~ as.factor(sameDirection1S0D)*uncuedAR + (1 + as.factor(sameDirection1S0D) | sub), data=fgmdata, REML=F)
 summary(m) # wow I see a main effect of uncuedAR, repulsion when they are not grouped, ADD THIS
@@ -332,9 +324,7 @@ ggline(tmpdata, x = "globalMotion", y = "responseError",
 # global motion anova
 ANOVA <- aov(responseError ~ as.factor(sameDirection1S0D)*uncuedCat*as.factor(fgmdata$coherence)*as.factor(globalMotion) + Error(as.factor(sub)/(as.factor(sameDirection1S0D))), data=fgmdata)
 summary(ANOVA)
-# END # 
-
-
+#### END #### 
 #### final ####
 tmpdata <- aggregate(responseError~ uncuedCat + sub + sameDirection1S0D, fgmdata, mean)
 tmpdata$sameDirection1S0D <- as.factor(tmpdata$sameDirection1S0D)
@@ -342,7 +332,7 @@ tmpdata$uncuedCat <- as.factor(tmpdata$uncuedCat)
 my_comparisons <- list(c("0", "1"))
 ggbarplot(tmpdata[!(tmpdata$uncuedCat==0),], x = "sameDirection1S0D", y = "responseError", 
           add = c("mean_se", "jitter"),
-          color = "uncuedCat", palette = "jco",
+          color = "sameDirection1S0D", palette = "jco",
           position = position_dodge(0.8))+ 
   stat_compare_means(paired = TRUE, comparisons = my_comparisons)+
   stat_compare_means(label.y = 0.3)+
@@ -354,13 +344,38 @@ ggline(tmpdata[!(tmpdata$uncuedCat==0),], x = "sameDirection1S0D", y = "response
   stat_compare_means(label.y = 0.3)+
   facet_grid(~uncuedCat)
 t.test(tmpdata$responseError[tmpdata$uncuedCat==1 & tmpdata$sameDirection1S0D==1], 
-       tmpdata$responseError[tmpdata$uncuedCat==1 & tmpdata$sameDirection1S0D==0], paired = TRUE, alternative = "great") 
+       tmpdata$responseError[tmpdata$uncuedCat==1 & tmpdata$sameDirection1S0D==0], paired = TRUE, alternative = "greater") 
 t.test(tmpdata$responseError[tmpdata$uncuedCat==-1 & tmpdata$sameDirection1S0D==1], 
        tmpdata$responseError[tmpdata$uncuedCat==-1 & tmpdata$sameDirection1S0D==0], paired = TRUE, var.equal = TRUE, alternative = "less") 
 ggpaired(tmpdata[!(tmpdata$uncuedCat==0),], x = "sameDirection1S0D", y = "responseError",
          color = "uncuedCat", line.color = "gray", line.size = 0.4,
          palette = "jco")+
   stat_compare_means(paired = TRUE)+facet_grid(~uncuedCat)
+#real g
+realG <- ggpaired(tmpdata[!(tmpdata$uncuedCat==0),], x = "sameDirection1S0D", y = "responseError",
+         color = "sameDirection1S0D", line.color = "gray", line.size = 0.4, position = position_dodge(0.5))+
+         stat_compare_means(paired = TRUE, label.y = 0.15, comparisons = my_comparisons)+
+         facet_grid(~uncuedCat)+
+         scale_color_grey(start = 0.0, end = 0.5)+
+         coord_cartesian(ylim = c(-0.15, 0.15))+
+        stat_boxplot(notch = FALSE, outlier.shape=8)+
+        geom_point(shape=16, position=position_jitter(0.01))+
+        stat_summary(fun.y=mean, shape=25, size=0.4, col = "darkred", fill="red")
+        #stat_boxplot(width = 0.5, notch = FALSE, outlier.shape=8) # geom ='errorbar' #         stat_summary(fun.y=mean, geom="circle", shape=23, size=4)+
+summary(realG)
+realG
+realG$layers <- realG$layers[-3]
+realG
+realG$layers <- realG$layers[-2]
+realG
+# 
+ggline(tmpdata[!(tmpdata$uncuedCat==0),], x = "sameDirection1S0D", y = "responseError", 
+       add = c("mean_se", "jitter"),
+       color = "uncuedCat", palette = "jco")+ 
+  stat_compare_means(paired = TRUE, comparisons = my_comparisons)+
+  stat_compare_means(label.y = 0.3)
+ggpairs(tmpdata)+theme_bw()
+ggpairs(tmpdata[!(tmpdata$uncuedCat==0),], columns = 1:4, ggplot2::aes(colour=sameDirection1S0D))
 compare_means(responseError ~ sameDirection1S0D, data = tmpdata[(tmpdata$uncuedCat==1),], paired = TRUE, alternative = "greater", method = "t.test")
 compare_means(responseError ~ sameDirection1S0D, data = tmpdata[(tmpdata$uncuedCat==1),], paired = TRUE, alternative = "greater", method = "wilcox.test")
 compare_means(responseError ~ sameDirection1S0D, data = tmpdata[(tmpdata$uncuedCat==-1),], paired = TRUE, alternative = "less")
@@ -398,7 +413,6 @@ x <- tmpdata$responseError[tmpdata$uncuedCat==1 & tmpdata$sameDirection1S0D==1]
 y <- tmpdata$responseError[tmpdata$uncuedCat==1 & tmpdata$sameDirection1S0D==0]
 wilcox.test(x, y, paired = TRUE, 
                    alternative = "greater")
-
 t.test(x,y, paired = TRUE, alternative = "greater")
 # doing mixed effects models
 fit.fgm <- lmer(responseError ~ (1 | sub), data = fgmdata)
@@ -419,9 +433,92 @@ fit.fgm <- lmer(responseError ~ sameDirection1S0D*uncuedCat + (1 | sub) +
 summary(fit.fgm)
 anova(fit.fgm) # anova for the fixed effects
 # probably this is driven by circle condition. I might not need to run an ANOVA actually since there 
-# is only 2 levels (same vs unsame | uncued flat vs uncued-tall)
-# run only t-tests? How about the circles though? circles to normalize data?
-# end of final # Move to -> graphing
+# also I'm moving away from uncuedCat analysis
+tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
+ggplot(tmpdata, aes(x = uncuedAR, y = responseError, color=as.factor(sameDirection1S0D))) + 
+  geom_point(size=2, shape=23, alpha = 1/2)+
+  geom_smooth(method=lm, aes(fill=as.factor(sameDirection1S0D)), fullrange=TRUE)+
+  theme_classic()
+summary(lmer(responseError ~ uncuedAR * sameDirection1S0D + (1 | sub) + 
+       (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR), data = tmpdata))
+# get each people's beta estimate
+number_of_sub <- unique(tmpdata$sub)
+fgmdata.indv_beta <- data.frame(matrix(ncol = 2, nrow = length(number_of_sub)))
+# array(NA, dim= c(length(subject_IDs), 3))
+for (r in 1:length(number_of_sub)){
+  tmpdata_sub <- tmpdata[tmpdata$sub==number_of_sub[r],]
+  #run a regression model on individual sub
+  lm_sub <- lm(responseError ~ uncuedAR * sameDirection1S0D, data = tmpdata_sub)
+  lm_beta <- summary(lm_sub)$coefficients[4]
+  fgmdata.indv_beta[r,1] <- lm_beta
+  fgmdata.indv_beta[r,2] = number_of_sub[r]
+}
+head(fgmdata.indv_beta)
+plot(fgmdata.indv_beta$X1)
+#doing it with simple regression motion seperately
+tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
+fgmdata.indv_beta <- data.frame(matrix(ncol = 3, nrow = length(number_of_sub)))
+for (r in 1:length(number_of_sub)){ 
+  tmpdata_sub <- tmpdata[tmpdata$sub==number_of_sub[r],]
+  #run a regression model on individual sub
+  lm_sub_diff <- lm(responseError ~ uncuedAR, data = tmpdata_sub[tmpdata_sub$sameDirection1S0D==0,])
+  lm_beta_diff <- summary(lm_sub_diff)$coefficients[2]
+  lm_sub_same <- lm(responseError ~ uncuedAR, data = tmpdata_sub[tmpdata_sub$sameDirection1S0D==1,])
+  lm_beta_same <- summary(lm_sub_same)$coefficients[2]
+  fgmdata.indv_beta[r,1] <- lm_beta_diff
+  fgmdata.indv_beta[r,2] <- lm_beta_same
+  fgmdata.indv_beta[r,3] = number_of_sub[r]
+}
+head(fgmdata.indv_beta)
+plot(fgmdata.indv_beta$X1, fgmdata.indv_beta$X2)
+abline(c(0,1)) # more points lie left of the abline, same has higher response errors
+#long to wide format
+meltData <- melt(fgmdata.indv_beta[1:2])
+head(meltData)
+p <- ggplot(meltData, aes(factor(variable), value)) 
+p + geom_boxplot() + facet_wrap(~variable, scale="free")+ theme_classic() +
+  geom_point()
+my_comparisons = list(c("X1","X2"))
+ggpaired(meltData, x = "variable", y = "value", line.color = "gray", 
+                 line.size = 0.2, position = position_dodge(0.5))+
+  stat_compare_means(paired = TRUE, label.y = 0.35, comparisons = my_comparisons)
+gglinePlot <- ggline(meltData, x = "variable", y = "value", 
+       add = c("mean_ci", "jitter"), palette = "jco")+ 
+  stat_compare_means(paired = TRUE, comparisons = my_comparisons)+
+  stat_compare_means(label.y = 0.3)
+gglinePlot
+summary(gglinePlot)
+compare_means(value ~ variable, data = meltData, paired = TRUE,  method = "t.test")# alternative = "greater", method = "t.test"
+ggerrorplot(meltData, x = "variable", y = "value", 
+            desc_stat = "mean_ci", color = "black",
+            add = "jitter", add.params = list(color = "darkgray"))+
+  stat_compare_means(comparisons = my_comparisons, paired = TRUE)+
+  stat_compare_means(label.y = 0.4)
+#another good graph
+ggline(meltData, x = "variable", y = "value",
+       add = c("mean_ci", "jitter"), add.params = list(color = "darkgray"))+
+  stat_compare_means(paired= TRUE, comparisons = my_comparisons)+
+  stat_compare_means(label.y = 1) #stat_summary(fun.y=mean, shape=25, size=0.4, col = "darkred", fill="red")
+ANOVA <- aov(responseError ~ sameDirection1S0D*uncuedCat + Error(as.factor(sub)/(sameDirection1S0D)), data=fgmdata)
+summary(ANOVA) #
+# now moving into plotting results, run this script first, then use the meltdata for plotting and/or use the same scripts here
+# end of final # 
+# how about cuedAR on regression model? #
+lmm <- lmer(responseError ~ 1  + sameDirection1S0D*uncuedAR + (sameDirection1S0D|sub), tmpdata)
+summary(lmm)
+tmpdata <- aggregate(responseError~ cuedAR + uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
+lmm <- lmer(responseError ~ 1  + cuedAR+sameDirection1S0D*uncuedAR + (sameDirection1S0D|sub), tmpdata)
+summary(lmm)
+# oky, having cued on the tmpdata but no on the model leads to interesting results
+# and, having cued on the tmpdata AND on the model reaffirms the initial analysis. 
+
+
+
+
+
+
+
+
 
 
 
