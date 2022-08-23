@@ -74,7 +74,7 @@ differentMotion_color <- "darkgray"
 lmAlpha <- 0.1
 # plotting regression plot
 tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
-regression_plot <- ggplot(tmpdata, aes(x = uncuedAR, y = responseError, color=as.factor(sameDirection1S0D))) + 
+regression_plot <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, color=as.factor(sameDirection1S0D))) + 
   geom_smooth(method=lm, aes(fill=as.factor(sameDirection1S0D)), fullrange=TRUE, alpha= lmAlpha)+
   coord_cartesian(ylim=c(-0.02, 0.04)) +
   geom_hline(yintercept=0.0,linetype="longdash", color = "gray50") + 
@@ -100,18 +100,21 @@ regression_plot <- ggplot(tmpdata, aes(x = uncuedAR, y = responseError, color=as
     #axis.title.x = element_text(size = rel(1.5), angle = 0,  vjust = -0.5)
   )
 regression_plot
-# anova
+# anova # ADDED TO THE MANUSCRIPT
 plot01_reg <- lmer(responseError ~ uncuedAR * sameDirection1S0D + (1 | sub) + 
-               (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR), data = tmpdata)
+               (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR), data = fgmdata, REML=FALSE)
 summary(plot01_reg)
 anova(plot01_reg)
+print(plot01_reg)
+ranef(plot01_reg) # random effects
+# end of ADDED TO THE MANUSCRIPT
 #doing it with simple regression motion seperately
 number_of_sub <- unique(fgmdata$sub)
 tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
 tmpdata_cued <- aggregate(responseError~ cuedAR + uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
 fgmdata.indv_beta <- data.frame(matrix(ncol = 3, nrow = length(number_of_sub)))
 for (r in 1:length(number_of_sub)){ 
-  tmpdata_sub <- tmpdata_cued[tmpdata_cued$sub==number_of_sub[r],]
+  tmpdata_sub <- tmpdata[tmpdata$sub==number_of_sub[r],]
   #run a regression model on individual sub
   lm_sub_diff <- lm(responseError ~ uncuedAR, data = tmpdata_sub[tmpdata_sub$sameDirection1S0D==0,])
   lm_beta_diff <- summary(lm_sub_diff)$coefficients[2]
@@ -141,6 +144,10 @@ ggpaired(meltData, x = "variable", y = "value", line.color = "gray",
          line.size = 0.2)+
   stat_compare_means(paired = TRUE, label.y = 0.35, comparisons = my_comparisons)
 compare_means(value ~ variable, data = meltData, paired = TRUE,  method = "t.test")# alternative = "greater", method = "t.test"
+# ADDED TO MANUSCRIPT #
+t.test(meltData$value[meltData$variable == "X1"], meltData$value[meltData$variable == "X2"], paired = T)
+# END OF ADDED TO THE MANUSCRIPT # 
+t.test(meltData$value[meltData$variable == "X1"], meltData$value[meltData$variable == "X2"], paired = T, alternative = "less")
 ggerrorplot(meltData, x = "variable", y = "value", 
             desc_stat = "mean_ci", color = "black",
             add = "jitter", add.params = list(color = "variable"))+

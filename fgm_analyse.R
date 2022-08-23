@@ -294,8 +294,13 @@ anova(lmm)# Okay, I guess there is no interaction with global organization :/
 m <- lmer(responseError ~ as.factor(sameDirection1S0D)*uncuedAR + (1 + as.factor(sameDirection1S0D) | sub), data=fgmdata, REML=F)
 summary(m) # wow I see a main effect of uncuedAR, repulsion when they are not grouped, ADD THIS
 # global_org
-m <- lmer(responseError ~ as.factor(sameDirection1S0D)*uncuedAR*as.factor(global_org) + (1 + as.factor(sameDirection1S0D)*as.factor(global_org) | sub), data=fgmdata, REML=F)
+# analysis on global org # ADDED TO MANUSCRIPT!
+summary(lmer(responseError ~ uncuedAR * sameDirection1S0D * global_org + (1 | sub) + 
+               (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR) + ( 1 | sub:global_org), data = fgmdata,  REML = FALSE))
+# analysis on global org # end of ADDED TO MANUSCRIPT!
+m <- lmer(responseError ~ as.factor(sameDirection1S0D)*uncuedAR*as.factor(global_org) + (1 + as.factor(sameDirection1S0D)*as.factor(global_org) * uncuedAR| sub), data=fgmdata, REML=F)
 summary(m) # 1) main effect of global org and 2) attraction to uncued in the same motion condition
+# analysis on global org # ADDED TO MANUSCRIPT!
 # again same findings! in fact uncued repulsion is almost there. 
 # fgmdata - same results
 ANOVA <- aov(responseError ~ sameDirection1S0D*uncuedCat + Error(as.factor(sub)/(sameDirection1S0D)), data=fgmdata)
@@ -489,6 +494,7 @@ gglinePlot <- ggline(meltData, x = "variable", y = "value",
 gglinePlot
 summary(gglinePlot)
 compare_means(value ~ variable, data = meltData, paired = TRUE,  method = "t.test")# alternative = "greater", method = "t.test"
+t.test(meltData$value[meltData$variable == "X1"], meltData$value[meltData$variable == "X2"], paired = T)
 ggerrorplot(meltData, x = "variable", y = "value", 
             desc_stat = "mean_ci", color = "black",
             add = "jitter", add.params = list(color = "darkgray"))+
@@ -502,7 +508,6 @@ ggline(meltData, x = "variable", y = "value",
 ANOVA <- aov(responseError ~ sameDirection1S0D*uncuedCat + Error(as.factor(sub)/(sameDirection1S0D)), data=fgmdata)
 summary(ANOVA) #
 # now moving into plotting results, run this script first, then use the meltdata for plotting and/or use the same scripts here
-# end of final # 
 # how about cuedAR on regression model? #
 lmm <- lmer(responseError ~ 1  + sameDirection1S0D*uncuedAR + (sameDirection1S0D|sub), tmpdata)
 summary(lmm)
@@ -511,8 +516,53 @@ lmm <- lmer(responseError ~ 1  + cuedAR+sameDirection1S0D*uncuedAR + (sameDirect
 summary(lmm)
 # oky, having cued on the tmpdata but no on the model leads to interesting results
 # and, having cued on the tmpdata AND on the model reaffirms the initial analysis. 
-
-
+# bgm style analyses of global organization
+summary(lmer(responseError ~ uncuedAR + uncuedAR:sameDirection1S0D * global_org + (1 | sub) + (1 | sub:uncuedAR) + (1 | sub:global_org), data = fgmdata, REML = FALSE))
+# end of final # 
+#### FINAL ADDING TO THIS SCRIPT #### 
+# ADDING TO MANUSCRIPT #
+# 1) regression plot stats
+fullModel <- lmer(responseError ~ uncuedAR * sameDirection1S0D + (1 | sub) + 
+                    (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR), data = fgmdata, REML = FALSE)
+summary(fullModel)
+anova(fullModel)
+# 2) uncued beta coeff stats
+#doing it with simple regression motion separately
+number_of_sub <- unique(fgmdata$sub)
+tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
+fgmdata.indv_beta <- data.frame(matrix(ncol = 3, nrow = length(number_of_sub)))
+for (r in 1:length(number_of_sub)){ 
+  tmpdata_sub <- tmpdata[tmpdata$sub==number_of_sub[r],]
+  #run a regression model on individual sub
+  lm_sub_diff <- lm(responseError ~ uncuedAR, data = tmpdata_sub[tmpdata_sub$sameDirection1S0D==0,])
+  lm_beta_diff <- summary(lm_sub_diff)$coefficients[2]
+  lm_sub_same <- lm(responseError ~ uncuedAR, data = tmpdata_sub[tmpdata_sub$sameDirection1S0D==1,])
+  lm_beta_same <- summary(lm_sub_same)$coefficients[2]
+  fgmdata.indv_beta[r,1] <- lm_beta_diff
+  fgmdata.indv_beta[r,2] <- lm_beta_same
+  fgmdata.indv_beta[r,3] = number_of_sub[r]
+}
+head(fgmdata.indv_beta)
+plot(fgmdata.indv_beta$X1, fgmdata.indv_beta$X2)
+abline(c(0,1)) # more points lie left of the abline, same has higher response errors
+#long to wide format
+meltData <- melt(fgmdata.indv_beta[1:2])
+gglinePlot <- ggline(meltData, x = "variable", y = "value", 
+                     add = c("mean_ci", "jitter"), palette = "jco")+ 
+  stat_compare_means(paired = TRUE, comparisons = my_comparisons)+
+  stat_compare_means(label.y = 0.3)
+gglinePlot
+summary(gglinePlot)
+compare_means(value ~ variable, data = meltData, paired = TRUE,  method = "t.test")# alternative = "greater", method = "t.test"
+t.test(meltData$value[meltData$variable == "X1"], meltData$value[meltData$variable == "X2"], paired = T)
+# 3) global organization stats
+# a) with all interactions
+summary(lmer(responseError ~ uncuedAR * sameDirection1S0D * global_org  + (1 | sub) + 
+               (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR) + (1 | sub:global_org), data = fgmdata,  REML = FALSE))
+# b) relevant interactions
+summary(lmer(responseError ~ uncuedAR + uncuedAR:sameDirection1S0D * global_org  + (1 | sub) + 
+               (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR) + (1 | sub:global_org), data = fgmdata,  REML = FALSE))
+# THE END. # 
 
 
 
