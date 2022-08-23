@@ -26,6 +26,7 @@ options(scipen = 100)
 # loading data
 setwd('~/Desktop/21Projects/Single_FG_Motion')
 fgmdata = read.csv('fgmdata.csv', header = TRUE)
+fgmdata_untouched = read.csv('untouchedData.csv', header = TRUE)
 # some relevant functions
 trunc <- function(x, ..., prec = 0) base::trunc(x * 10^prec, ...) / 10^prec;
 # sourcing my own functions
@@ -46,7 +47,6 @@ table(fgmdata$cuedCat)
 fgmdata$respAcc <- ifelse( (fgmdata$responseAR > 0 & fgmdata$cuedCat == 1)  | (fgmdata$responseAR < 0 & fgmdata$cuedCat == -1) | (fgmdata$responseAR == 0 & fgmdata$cuedCat == 0), 1, 0)
 table(fgmdata$respAcc)
 fgmdata$globalMotion <- as.factor(ifelse(fgmdata$cued_motion_dir == 90 | fgmdata$cued_motion_dir == 270, 1, -1))
-
 # check all Ps regression line
 ggplot(fgmdata, aes(x = cuedAR, y = responseAR)) + 
   geom_point(alpha=1/120)+
