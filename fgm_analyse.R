@@ -519,6 +519,12 @@ summary(lmm)
 # bgm style analyses of global organization
 summary(lmer(responseError ~ uncuedAR + uncuedAR:sameDirection1S0D * global_org + (1 | sub) + (1 | sub:uncuedAR) + (1 | sub:global_org), data = fgmdata, REML = FALSE))
 # end of final # 
+withCuedAR <- lmer(responseError ~ cuedAR + uncuedAR * sameDirection1S0D + (1 | sub) + 
+                     (1 | sub:sameDirection1S0D) + (1 | sub:uncuedAR) + (1 | sub:cuedAR), data = fgmdata, REML = FALSE)
+summary(withCuedAR)
+anova(withCuedAR)
+withCuedAR <- lmer(responseError ~ cuedAR + (1 | sub) + (1 | sub:cuedAR), data = fgmdata, REML = FALSE)
+summary(withCuedAR)
 #### FINAL ADDING TO THIS SCRIPT #### 
 # ADDING TO MANUSCRIPT #
 # 1) regression plot stats

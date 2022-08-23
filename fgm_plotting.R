@@ -139,7 +139,7 @@ gglinePlot <- ggline(meltData, x = "variable", y = "value",
                      add = c("mean_ci", "jitter"), palette = "jco")+ 
   stat_compare_means(paired = TRUE, comparisons = my_comparisons, label.y = 0.3)+
   geom_violin(alpha = 1/60)
-gglinePlot
+gglinePlotg
 ggpaired(meltData, x = "variable", y = "value", line.color = "gray",
          line.size = 0.2)+
   stat_compare_means(paired = TRUE, label.y = 0.35, comparisons = my_comparisons)
