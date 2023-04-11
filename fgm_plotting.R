@@ -3,9 +3,7 @@
 # Same/similar to bgm_plotting.R script. Only doing it for the fgm plots
 # plots to be used for the manuscript
 # good representative participant: 939045
-
-# last update: 17 Agu 22
-
+# last update: 12/15/22
 # clear the workspace
 rm(list=ls()) 
 # load libraries in bulk
@@ -15,7 +13,6 @@ x<-c("ggpubr", "ggplot2", "multcomp", "pastecs", "tidyr","dplyr", "ggiraph", "gg
      "gridExtra", "statmod", "dotwhisker")
 require(x)
 lapply(x, require, character.only = TRUE)
-source("~/Documents/GitHub/ger_R_functions/plot_functions.R")
 savePlot <- function(myPlot) {
   pdf("myPlot.png")
   print(myPlot)
@@ -23,7 +20,7 @@ savePlot <- function(myPlot) {
 }
 #### locate the data and import it ####
 # loading data
-setwd('~/Desktop/21Projects/Single_FG_Motion')
+setwd('~/Desktop/21Projects/FGM_analysis')
 fgmdata = read.csv('fgmdata.csv', header = TRUE)
 fgmdata$cuedCat = ifelse(fgmdata$cuedAR < 0, -1, ifelse(fgmdata$cuedAR==-0, 0, 1))
 fgmdata$uncuedCat = ifelse(fgmdata$uncuedAR < 0, -1, ifelse(fgmdata$uncuedAR==-0, 0, 1))
@@ -73,6 +70,8 @@ identicalMotion_color <- "black"
 differentMotion_color <- "darkgray"
 lmAlpha <- 0.1
 # plotting regression plot
+# number of sub: 
+length(unique(fgmdata$sub))
 tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
 regression_plot <- ggplot(fgmdata, aes(x = uncuedAR, y = responseError, color=as.factor(sameDirection1S0D))) + 
   geom_smooth(method=lm, aes(fill=as.factor(sameDirection1S0D)), fullrange=TRUE, alpha= lmAlpha)+

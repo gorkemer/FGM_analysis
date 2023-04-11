@@ -19,13 +19,11 @@ lapply(x, require, character.only = TRUE)
 #remove scientific notation in the entire R session
 options(scipen = 100)
 # loading data
-setwd('~/Desktop/21Projects/Single_FG_Motion')
+setwd('~/Desktop/21Projects/FGM_analysis')
 fgmdata = read.csv('fgmdata.csv', header = TRUE)
 fgmdata_untouched = read.csv('untouchedData.csv', header = TRUE)
 # some relevant functions
 trunc <- function(x, ..., prec = 0) base::trunc(x * 10^prec, ...) / 10^prec;
-# sourcing my own functions
-source("~/Documents/GitHub/ger_R_functions/plot_functions.R")
 # exp details
 number_of_sub <- unique(fgmdata$sub)
 # new meta variables
@@ -103,19 +101,26 @@ abline(coef = c(0,0),col="red", lwd=3, lty=2)
 par(mfrow = c(1,1))
 # ADDING TO MANUSCRIPT #
 library(equatiomatic)
-# 1) regression plot stats
-fullModel <- lmer(responseError ~ uncuedAR * sameDirection1S0D + (1 | sub), data = fgmdata, REML = FALSE)
-summary(fullModel)
-extract_eq(fullModel, wrap = TRUE, terms_per_line = 2)
+number_of_sub <- unique(fgmdata$sub)
 # 1a) fitting cued AR to response AR 
 cuedAR_model <- lmer(responseAR ~ cuedAR + (1 | sub), data = fgmdata, REML = FALSE)
 summary(cuedAR_model)
 extract_eq(cuedAR_model, wrap = TRUE, terms_per_line = 2)
-# 1b) fitting cued AR and uncued AR and grouping to response AR 
-uncuedAR_model <- lmer(responseAR ~ cuedAR + uncuedAR + (uncuedAR:sameDirection1S0D) + (1 | sub), data = fgmdata, REML = FALSE)
+# 1b) regression plot stats
+fullModel <- lmer(responseError ~ uncuedAR * sameDirection1S0D + (1 | sub), data = fgmdata, REML = FALSE)
+summary(fullModel)
+extract_eq(fullModel, wrap = TRUE, terms_per_line = 2)
+# 2) global organization stats
+# a) with all interactions
+globalOrg_model <- lmer(responseError ~ uncuedAR * sameDirection1S0D * global_org  + (1 | sub), data = fgmdata,  REML = FALSE)
+summary(globalOrg_model)
+extract_eq(globalOrg_model, wrap = TRUE, terms_per_line = 2)
+# APPENDIX ANALYSES #
+# ResponseAR-appendix) main analyses but using responseAR as dependent variable 
+uncuedAR_model <- lmer(responseAR ~ uncuedAR * sameDirection1S0D + (1 | sub), data = fgmdata, REML = FALSE)#lmer(responseAR ~ uncuedAR + (uncuedAR:sameDirection1S0D) + (1 | sub), data = fgmdata, REML = FALSE)
 summary(uncuedAR_model)
 extract_eq(uncuedAR_model, wrap = TRUE, terms_per_line = 2)
-# 2) uncued beta coeff stats
+# betaCoef-appendix) uncued beta coeff stats
 #doing it with simple regression motion separately
 number_of_sub <- unique(fgmdata$sub)
 tmpdata <- aggregate(responseError~ uncuedAR + sub + sameDirection1S0D, fgmdata, mean)
@@ -138,16 +143,56 @@ abline(c(0,1)) # more points lie left of the abline, same has higher response er
 meltData <- melt(fgmdata.indv_beta[1:2])
 gglinePlot <- ggline(meltData, x = "variable", y = "value", 
                      add = c("mean_ci", "jitter"), palette = "jco")+ 
-  stat_compare_means(paired = TRUE, comparisons = my_comparisons)+
+  stat_compare_means(paired = TRUE)+ #  stat_compare_means(paired = TRUE, comparisons = my_comparisons)+
   stat_compare_means(label.y = 0.3)
 gglinePlot
 summary(gglinePlot)
 compare_means(value ~ variable, data = meltData, paired = TRUE,  method = "t.test")# alternative = "greater", method = "t.test"
 t.test(meltData$value[meltData$variable == "X1"], meltData$value[meltData$variable == "X2"], paired = T)
-# 3) global organization stats
-# a) with all interactions
-globalOrg_model <- lmer(responseError ~ uncuedAR * sameDirection1S0D * global_org  + (1 | sub), data = fgmdata,  REML = FALSE)
-summary(globalOrg_model)
-extract_eq(globalOrg_model, wrap = TRUE, terms_per_line = 2)
 # THE END. # 
+
+library(ridgeline)
+ridgeline(fgmdata$responseError[fgmdata$sameDirection1S0D == 1], fgmdata$uncuedAR[fgmdata$sameDirection1S0D == 1], bw = 0.05)
+ridgeline(fgmdata$responseError[fgmdata$sameDirection1S0D == 0], fgmdata$uncuedAR[fgmdata$sameDirection1S0D == 0], bw = 0.05)
+#
+library(ggridges)
+tmpdata <- aggregate(responseError ~ uncuedAR + sub + sameDirection1S0D + global_org, fgmdata, mean)
+ggplot(tmpdata, aes(x = responseError, y = as.factor(uncuedAR), fill = stat(x))) +
+  geom_density_ridges_gradient(rel_min_height = 0.1) +
+  scale_fill_viridis_c(name = "Uncued AR", option = "C") +
+  labs(title = 'Response Errors for each uncued pairings (0: Diff. Motion, 1: Same Motion') + 
+  facet_wrap(~sameDirection1S0D)
+#
+ggplot(tmpdata, aes(x = responseError, y = as.factor(uncuedAR), fill = stat(x), color = as.factor(sameDirection1S0D))) +
+  geom_density_ridges_gradient(rel_min_height = 0.1) +
+  scale_fill_viridis_c(name = "Uncued AR", option = "C") +
+  labs(title = 'Response Errors  for each uncued pairings (0: Diff. Motion, 1: Same Motion') +
+  theme_bw()
+
+tmpdata <- aggregate(responseError ~ cuedAR + sub, fgmdata, mean)
+ggplot(tmpdata, aes(x = responseError, y = as.factor(cuedAR), fill = stat(x), color = as.factor(cuedAR))) +
+  geom_density_ridges_gradient(rel_min_height = 0.1) +
+  scale_fill_viridis_c(name = "Cued AR", option = "C") +
+  labs(title = 'Response Errors  for each uncued pairings (0: Diff. Motion, 1: Same Motion') +
+  theme_bw()
+
+test1 <- aggregate(responseError ~ cuedAR + sub, fgmdata, mean)
+test1
+test1$cuedAR <- as.factor(test1$cuedAR)
+# Get mean & standard deviation by group
+data_msd <- test1 %>%                          
+  group_by(cuedAR) %>%
+  summarise_at(vars(responseError),
+               list(mean = mean,
+                    sd = sd)) %>% 
+  as.data.frame()
+head(data_msd)  
+colnames(data_msd) <- c("cuedAR", "responseError","SD")
+head(data_msd) 
+ggplot(data = test1) + 
+  aes(x = cuedAR, y = responseError) +
+  geom_point(alpha = 1/40) + 
+  geom_errorbar(data=data_msd, aes(ymin = responseError - SD,
+                    ymax = responseError + SD, col = "blue")) +
+  geom_point(data=data_msd, col= "blue")
 
